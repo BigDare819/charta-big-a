@@ -39,6 +39,8 @@
   "message.daa.trump_is": "本局大A为%s。",
   "message.daa.main_a_is": "%s 手握大A，由其首轮起牌。",
   "message.daa.double_a": "两个大A在同一人手中：此人独占主方。",
+  "message.daa.single_a": "这副牌只有一个大A：该玩家独自为主。",
+  "message.charta.try_finding_another": "换一副试试——任何一副扑克牌都能打，创造模式「牌组」页里的双副牌才是完整版。",
   "message.daa.sub_a_is": "另一个大A在 %s 手中。",
   "message.daa.sub_a_hidden": "次A暂时隐藏。",
   "message.daa.sub_a_revealed": "%s 打出大A，暴露了次A身份！",
@@ -92,7 +94,7 @@
   "editor.daa.status_turn": "回合信息行",
   "editor.daa.status_table": "台面信息行",
 
-  "deck.daa.double": "双副牌",
+  "deck.daa.double": "双副牌 · 打大A完整版(108张)",
 
   "card.daa.bigJoker": "大王",
   "card.daa.smallJoker": "小王"

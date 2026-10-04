@@ -39,6 +39,8 @@
   "message.daa.trump_is": "The big aces are the %s aces.",
   "message.daa.main_a_is": "%s holds a big ace and leads.",
   "message.daa.double_a": "Both big aces are in one hand: the holder is alone.",
+  "message.daa.single_a": "This deck holds a single big ace: its holder plays alone.",
+  "message.charta.try_finding_another": "Try another one -- any poker deck plays; the double deck in the Decks creative tab is the full game.",
   "message.daa.sub_a_is": "The second big ace is with %s.",
   "message.daa.sub_a_hidden": "The second big ace stays hidden.",
   "message.daa.sub_a_revealed": "%s plays a big ace and shows as the second holder!",
@@ -92,7 +94,7 @@
   "editor.daa.status_turn": "turn line",
   "editor.daa.status_table": "table line",
 
-  "deck.daa.double": "Double deck",
+  "deck.daa.double": "Double deck - full Big A (108 cards)",
 
   "card.daa.bigJoker": "big joker",
   "card.daa.smallJoker": "small joker"

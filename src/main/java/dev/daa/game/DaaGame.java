@@ -275,11 +275,19 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
 
     @Override
     public Predicate<Deck> getDeckPredicate() {
-        // The game needs both decks. Anything with a hundred cards or more and the four standard suits
-        // plus the jokers will do, so a renamed or restyled double deck still works.
-        return deck -> deck.getCards().size() >= 100
+        // Big A is a two deck game, so the full thing wants the 108 card double deck. But the deal is
+        // round robin over whatever the deck actually holds (see startGame), the ladder does not need
+        // the second copy, and a lone 大A already plays alone -- so a plain 52 card poker deck is
+        // playable: shorter hands, no jokers, and no hidden partner.
+        //
+        // Both are accepted, and by shape rather than by id, so any restyled or renamed poker deck
+        // works. Every one of Charta's own standard decks does now; before, all of them fell under the
+        // old ">= 100 cards AND a joker" rule and the first thing a new player met was
+        // "you can't play this game with this deck".
+        return deck -> deck.getCards().size() >= 52
                 && deck.getSuits().containsAll(Suits.STANDARD)
-                && deck.getCards().stream().anyMatch(DaaCards::isJoker);
+                && deck.getCards().stream().anyMatch(card ->
+                        Ranks.STANDARD.contains(card.rank()) || DaaCards.isJoker(card));
     }
 
     @Override
@@ -434,6 +442,12 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         trump = suits.get(random.nextInt(suits.size()));
 
         List<Integer> holders = new ArrayList<>();
+        int bigAsInDeck = 0;
+        for (Card card : gameDeck) {
+            if (DaaCards.isBigA(card, trump)) {
+                bigAsInDeck++;
+            }
+        }
         for (int i = 0; i < players.size(); i++) {
             CardPlayer player = players.get(i);
             for (Card card : getPlayerHand(player).getCards()) {
@@ -464,7 +478,9 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         table(Component.translatable("message.daa.trump_is", Component.translatable(deck.getSuitTranslatableKey(trump))));
         table(Component.translatable("message.daa.main_a_is", playerAt(mainASeat).getColoredName()));
         if (subASeat < 0) {
-            table(Component.translatable("message.daa.double_a"));
+            // Two very different situations look the same from here: a one deck game has no second
+            // 大A at all, while a double deck game can simply have dealt both to one player.
+            table(Component.translatable(bigAsInDeck <= 1 ? "message.daa.single_a" : "message.daa.double_a"));
         } else if (REVEAL_SUB_A.get()) {
             subARevealed = true;
             reveal(subASeat);

@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * <p>Dropping the interleaved draws changes nothing: the trailing draw already happens last, so the
  * hovered widget ends up on top either way, and every intermediate draw uses identical geometry.
  */
-@Mixin(GameScreen.class)
+@Mixin(value = GameScreen.class, priority = 1500)
 public abstract class GameScreenHoverCost {
 
     @Redirect(

@@ -3,7 +3,8 @@
   "minVersion": "0.8",
   "package": "dev.daa.mixin",
   "compatibilityLevel": "JAVA_21",
-  "priority": 1200,
+  "priority": 1500,
+  "defaultMixinPriority": 1500,
   "mixins": [
     "AutoPlayerPace",
     "CardSlotGeometry"

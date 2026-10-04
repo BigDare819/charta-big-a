@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * {@code CardSlot.getWidth} is Charta's own, never remapped, so the {@code @At} target is literal and
  * is flagged {@code remap = false}.
  */
-@Mixin(CardSlotWidget.class)
+@Mixin(value = CardSlotWidget.class, priority = 1500)
 public abstract class CardSlotWidgetMetrics {
 
     @Redirect(

@@ -4,6 +4,18 @@
 This is the Charta port. It follows the common ruleset; the paragraphs below say exactly what this port
 does wherever a local variant could go either way.
 
+## Which deck
+
+**Any poker deck opens a table**, including the several dozen 52 card decks Charta ships. On 52 cards you
+just get short hands of ten-odd cards, no jokers, and a single big ace whose holder plays alone.
+
+For the full game take the **"Double deck - full Big A (108 cards)"** from Charta's *Decks* creative tab
+and put it on the table: that is the real thing, 22 card hands, both jokers and both big aces.
+
+If the game button says a deck cannot play this game, the deck is almost certainly not a poker deck —
+Charta's UNO-suited "fun" decks are the ones that get rejected. Any ordinary deck will do. The log also
+lists which of your loaded decks are usable, once per world load.
+
 ## The board
 
 A suit is drawn at the deal. Its two aces are the **big aces** (大A) and are the highest cards in the

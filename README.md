@@ -1,7 +1,7 @@
-# Big A (打大A) — a Charta addon
+# BigA (打大A) — a Charta addon
 
 A Fabric 1.21.1 addon for [Charta](https://github.com/LucaArgolo/charta) implementing **打大A (Big A)**,
-the Inner Mongolian five-hand climbing game, played with two 54-card decks.
+the Inner Mongolian five-hand climbing game.
 
 Everything the table needs — the cards, the shader, the fan, the hover lift, the history and options
 panels — comes from Charta. This mod adds the game: the deal, the hidden partner, the whole shape ladder,
@@ -13,7 +13,8 @@ the 4 recycle, the bots and the table screen.
 | Loader | Fabric, loader 0.17+ |
 | Requires | [Charta](https://modrinth.com/mod/charta) 1.2.5, Fabric API |
 | Game id | `daa:big_a` |
-| Deck | `daa:double` — a 108 card double deck with both jokers |
+| Full deck | `daa:double` — a 108 card double deck with both jokers |
+| Any poker deck | also works, shortest hands (~10) and no jokers |
 
 ## The game in one paragraph
 
@@ -31,7 +32,9 @@ The full rules, the shape table and the controls are in game, on the **how to pl
 
 1. Build a card table out of **card table blocks**. Charta accepts a 3×3, 4×3 or 5×3 rectangle, filled
    in and flat; a five hand game wants the 5×3 one, which also seats everybody on a side.
-2. Put the **Double deck** (`daa:double`) on it and select **打大A / Big A**.
+2. Put a deck on it and select **打大A / BigA**. **Any poker deck works** — a plain 52 card one just
+   deals shorter hands and has no jokers. The **Double deck** (`daa:double`) is the full 108 card game;
+   it is in Charta's *Decks* creative tab.
 3. Up to five players. **Bot mode** is on by default, so every empty chair is filled with a bot and a
    single player can open a table; turn it off to require five real players. **Bot strength** (0/1/2)
    picks how hard they play — relaxed and blind, partner-aware, or fierce enough to take every recycle

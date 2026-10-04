@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * against {@code CardImage.WIDTH * 1.5f} to decide whether to blit the framed drop-target background,
  * and that comparison should stay on the vanilla type sizes.
  */
-@Mixin(GameScreen.class)
+@Mixin(value = GameScreen.class, priority = 1500)
 public abstract class GameScreenMetrics {
 
     @Redirect(

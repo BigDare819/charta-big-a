@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
  * {@code childWidth / 10f} slack that sets {@code maxLeftOffset} for the horizontal fan. They are 30
  * instructions apart with the fan's one first, so {@code ordinal = 1} is the column step.
  */
-@Mixin(CardSlotWidget.class)
+@Mixin(value = CardSlotWidget.class, priority = 1500)
 public abstract class CardSlotWidgetColumnStep {
 
     private static float daa$fullCardStep() {

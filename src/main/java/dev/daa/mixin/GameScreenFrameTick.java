@@ -21,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * design mapped the same way, so the conversion is identical, and covering both keeps this working on
  * whichever addon's copy of the mixin Mixin decides to skip.
  */
-@Mixin(GameScreen.class)
+@Mixin(value = GameScreen.class, priority = 1500)
 public abstract class GameScreenFrameTick {
 
     @Redirect(

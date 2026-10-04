@@ -6,9 +6,11 @@ import dev.daa.network.DaaActionPayload;
 import dev.lucaargolo.charta.common.ChartaMod;
 import dev.lucaargolo.charta.common.FabricChartaMod;
 import dev.lucaargolo.charta.common.game.Games;
+import dev.lucaargolo.charta.common.game.api.card.Deck;
 import dev.lucaargolo.charta.common.game.api.game.GameType;
 import dev.lucaargolo.charta.common.menu.AbstractCardMenu;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
@@ -18,6 +20,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.MenuType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Big A: a Charta addon implementing the Inner Mongolian climbing game 打大A.
@@ -51,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class DaaMod implements ModInitializer {
 
     public static final String MOD_ID = "daa";
-    public static final String MOD_NAME = "Big A";
+    public static final String MOD_NAME = "BigA";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
 
     /**
@@ -92,7 +97,37 @@ public class DaaMod implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(DaaActionPayload.TYPE, (payload, context) ->
                 DaaActionPayload.handleServer(payload, context.player(), context.server()));
 
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> reportUsableDecks());
+
         LOGGER.info("Registered {} as a playable charta game", GAME_ID);
+    }
+
+    /**
+     * Names the decks Big A will accept, once per world load.
+     *
+     * <p>Worth the few lines: the only feedback Charta gives for a deck it does not like is a generic
+     * "you can't play this game with this deck", shown before the player has any way to know which of
+     * the seventy-odd decks would have worked. A line in the log turns that into a lookup.
+     */
+    private static void reportUsableDecks() {
+        try {
+            DaaGame probe = new DaaGame(List.of(), Deck.EMPTY);
+            java.util.function.Predicate<Deck> accepted = probe.getDeckPredicate();
+            List<String> usable = new ArrayList<>();
+            ChartaMod.CARD_DECKS.getDecks().forEach((id, deck) -> {
+                if (accepted.test(deck)) {
+                    usable.add(id + " (" + deck.getCards().size() + " cards)");
+                }
+            });
+            if (usable.isEmpty()) {
+                LOGGER.warn("No loaded deck can play Big A -- it needs four standard suits and 52+ cards");
+            } else {
+                LOGGER.info("Big A can be played with {} of {} loaded decks; the full game wants a 108 card double deck. Usable: {}",
+                        usable.size(), ChartaMod.CARD_DECKS.getDecks().size(), String.join(", ", usable));
+            }
+        } catch (RuntimeException e) {
+            LOGGER.warn("Could not check which decks Big A accepts", e);
+        }
     }
 
     /**

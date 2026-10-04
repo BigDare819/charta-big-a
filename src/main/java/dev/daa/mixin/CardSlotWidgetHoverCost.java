@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * ({@code method_48579}). The call target is Charta's own {@code CardSlotWidget.render}, inherited from
  * vanilla {@code Renderable}, so the name is remapped while the owner is not.
  */
-@Mixin(CardSlotWidget.class)
+@Mixin(value = CardSlotWidget.class, priority = 1500)
 public abstract class CardSlotWidgetHoverCost {
 
     @Redirect(

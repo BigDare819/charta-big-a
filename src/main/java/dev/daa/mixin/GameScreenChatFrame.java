@@ -27,8 +27,16 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * the same instruction Mixin keeps the higher priority one and <em>skips</em> the other, so this copy
  * has to cover the other addon's screen too, or that screen loses its chat fix on the one launch where
  * this config wins.
+ *
+ * <h2>Why the {@code priority = 1500} on the annotation</h2>
+ *
+ * <p>It is the only priority that actually counts. Mixin reads it off the {@code @Mixin} annotation
+ * ({@code MixinInfo.readPriority}) and otherwise falls back to the config's default — but the config
+ * key that would set that default is not read by this Mixin build at all, so every mixin in every
+ * config starts at 1000 and the winner of a collision is decided purely by load order. Raising it here
+ * makes this addon the one that wins, which is what lets this handler cover both screens.
  */
-@Mixin(GameScreen.class)
+@Mixin(value = GameScreen.class, priority = 1500)
 public abstract class GameScreenChatFrame {
 
     @Redirect(
