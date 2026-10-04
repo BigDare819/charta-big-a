@@ -259,8 +259,7 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         int color = rgb(player.getColor());
         boolean active = seat == menu.getCurrentSeat() && menu.getPhase() == DaaGame.Phase.PLAY;
 
-        Component text = player.getName().copy();
-        if (seat == menu.getLocalSeat()) {
+        Component text = player.getName().copy();        if (seat == menu.getLocalSeat()) {
             text = text.copy().append(Component.translatable("seat.daa.you"));
         }
         if (seat == menu.getMainASeat()) {
@@ -279,16 +278,18 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         int left = Mth.clamp(centreX - plateWidth / 2, 2, DaaFrame.WIDTH - plateWidth - 2);
         int top = box[1];
 
-        guiGraphics.fill(left, top, left + plateWidth, top + box[3], active ? 0xCC101010 : PLATE_BG);
+        // The plate body never changes: it carries only the owner's colour chip down its left edge.
+        // Whose turn it is is said by a single stroke along the top in that same colour, so five plates
+        // read as five names with one of them underlined rather than five boxes with one inverted.
+        guiGraphics.fill(left, top, left + plateWidth, top + box[3], PLATE_BG);
         guiGraphics.fill(left, top, left + 2, top + box[3], 0xFF000000 | color);
         if (active) {
-            guiGraphics.fill(left + 2, top, left + plateWidth, top + 1, 0xFF000000 | color);
-            guiGraphics.fill(left + 2, top + box[3] - 1, left + plateWidth, top + box[3], 0xFF000000 | color);
+            guiGraphics.fill(left + 2, top, left + plateWidth, top + 2, 0xFF000000 | color);
         }
 
         Component count = Component.literal(" " + menu.handCount(seat));
         int textY = top + (box[3] - 8) / 2;
-        guiGraphics.drawString(font, text, left + 5, textY, active ? ACTIVE : LABEL, true);
+        guiGraphics.drawString(font, text, left + 5, textY, LABEL, true);
         guiGraphics.drawString(font, count, left + 5 + font.width(text), textY,
                 seat == menu.getLocalSeat() ? ACTIVE : DIM, true);
     }
@@ -297,11 +298,29 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
 
     private void renderStatus(GuiGraphics guiGraphics) {
         switch (menu.getPhase()) {
-            case DEALING -> drawCentred(guiGraphics, Component.translatable("message.daa.dealing")
-                    .withStyle(ChatFormatting.GOLD), 100);
+            case DEALING -> renderDealStatus(guiGraphics);
             case RESULT -> drawResult(guiGraphics);
             case PLAY -> renderPlayStatus(guiGraphics);
         }
+    }
+
+    /**
+     * The deal, as three lines: how far along it is, what the 大A is, and whether this viewer can call.
+     *
+     * <p>The 大A is drawn before the first card precisely so it can be called while the cards are still
+     * landing, which means the suit has to be on screen from the first tick rather than at the end.
+     */
+    private void renderDealStatus(GuiGraphics guiGraphics) {
+        int size = Math.max(1, menu.getGame().getDeck().getCards().size());
+        drawStatus(guiGraphics, DaaLayout.Element.STATUS_BOARD,
+                Component.translatable("message.daa.dealing_progress", menu.getDealt(), size));
+
+        String key = menu.canCallBigA() ? "message.daa.call_hint"
+                : menu.hasCalled() ? "message.daa.call_done" : "message.daa.call_wait";
+        drawStatus(guiGraphics, DaaLayout.Element.STATUS_TURN,
+                Component.translatable("message.daa.trump_is", trumpLine(trump())).withStyle(ChatFormatting.GOLD));
+        drawStatus(guiGraphics, DaaLayout.Element.STATUS_TABLE,
+                Component.translatable(key).withStyle(menu.canCallBigA() ? ChatFormatting.YELLOW : ChatFormatting.GRAY));
     }
 
     private void renderPlayStatus(GuiGraphics guiGraphics) {
@@ -393,6 +412,11 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         Combo combo = selection.isEmpty() ? null : Combo.of(selection, trump());
         boolean legal = combo != null && combo.playableOn(selection, tableCombo());
 
+        if (menu.getPhase() == DaaGame.Phase.DEALING) {
+            // Only meaningful while the cards are still coming; on the play board it would be dead space.
+            drawButton(guiGraphics, DaaLayout.Element.BTN_CALL, "message.daa.call",
+                    menu.canCallBigA(), mouseX, mouseY);
+        }
         drawButton(guiGraphics, DaaLayout.Element.BTN_PLAY, "message.daa.play",
                 menu.isMyTurn() && legal, mouseX, mouseY);
         drawButton(guiGraphics, DaaLayout.Element.BTN_PASS, "message.daa.pass",
@@ -518,6 +542,10 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
 
     /** Our own hit-test, in frame coordinates. */
     private boolean click(double x, double y) {
+        if (menu.canCallBigA() && inside(DaaLayout.Element.BTN_CALL, x, y)) {
+            send(DaaActionPayload.CALL, 0);
+            return true;
+        }
         if (inside(DaaLayout.Element.BTN_PLAY, x, y) && menu.isMyTurn()) {
             List<Card> selection = selectedCards();
             Combo combo = selection.isEmpty() ? null : Combo.of(selection, trump());
@@ -557,10 +585,19 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_F9) {
             editing = !editing;
+            if (!editing) {
+                LAYOUT.save();
+            }
             return true;
         }
         if (editing) {
             return editKey(keyCode);
+        }
+        if (keyCode == GLFW.GLFW_KEY_C) {
+            int[] call = LAYOUT.bounds(DaaLayout.Element.BTN_CALL);
+            if (click(call[0], call[1])) {
+                return true;
+            }
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
             click(LAYOUT.bounds(DaaLayout.Element.BTN_PLAY)[0], LAYOUT.bounds(DaaLayout.Element.BTN_PLAY)[1]);
@@ -602,6 +639,7 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
             if (element != null) {
                 LAYOUT.reset(element);
                 LAYOUT.apply(menu);
+                LAYOUT.save();
             }
             return true;
         }
@@ -612,6 +650,7 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         if (keyCode == GLFW.GLFW_KEY_R && hovered != null) {
             LAYOUT.reset(hovered);
             LAYOUT.apply(menu);
+            LAYOUT.save();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_S) {
@@ -624,6 +663,11 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (editing) {
+            // Every gesture writes: a layout that only survives an explicit S is a layout the player
+            // loses the one time they forget it, and the whole file is a few hundred bytes.
+            if (dragging) {
+                LAYOUT.save();
+            }
             dragging = false;
             return true;
         }
@@ -635,9 +679,17 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         if (editing && hovered != null) {
             LAYOUT.scaleBy(hovered, (float) scrollY * DaaLayout.SCALE_STEP);
             LAYOUT.apply(menu);
+            LAYOUT.save();
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    /** Writes the layout out on the way off the screen, so a drag can never be lost to a crash. */
+    @Override
+    public void removed() {
+        super.removed();
+        LAYOUT.save();
     }
 
     private void renderEditor(GuiGraphics guiGraphics) {

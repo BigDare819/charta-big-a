@@ -75,6 +75,26 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
     /** How long a completed round is held before the next lead, so the table can be read. */
     private static final int ROUND_LINGER = 22;
 
+    /**
+     * Ticks between two dealt cards.
+     *
+     * <p>One card a tick is twenty a second: a hundred and eight cards are out in five seconds and the
+     * whole deal is a blur. Three ticks a card is the pace the table can actually be read at — and it
+     * is what opens the window for 叫大A below.
+     */
+    private static final int DEAL_INTERVAL = 3;
+
+    /**
+     * Ticks of quiet after the last card.
+     *
+     * <p>The last card dealt can itself be a 大A, so the calling window must not close with the deck.
+     */
+    private static final int CALL_WINDOW = 40;
+
+    /** How long a bot sits on a 大A before it calls, and how much longer it may take. */
+    private static final int BOT_CALL_MIN = 6;
+    private static final int BOT_CALL_SPAN = 26;
+
     public enum Phase {
         DEALING,
         PLAY,
@@ -108,7 +128,11 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
     public static final int SYNC_OUTCOME = SYNC_SELECT_HI + PLAYERS;
     public static final int SYNC_PASSES = SYNC_OUTCOME + 1;
     public static final int SYNC_ROUND = SYNC_PASSES + 1;
-    public static final int SYNC_SIZE = SYNC_ROUND + 1;
+    /** Cards already dealt, so the dealing line can count up as the deck empties. */
+    public static final int SYNC_DEALT = SYNC_ROUND + 1;
+    /** Bitmask of the seats that have called their 大A during the deal; see {@link #callBigA}. */
+    public static final int SYNC_CALLED = SYNC_DEALT + 1;
+    public static final int SYNC_SIZE = SYNC_CALLED + 1;
 
     // ------------------------------------------------------------------ options ---
 
@@ -154,6 +178,13 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
     private int subASeat = -1;
     private boolean subARevealed;
     private int revealedMask;
+
+    /** Seats that owned up to a 大A while the deal was still running; see {@link #callBigA}. */
+    private int calledMask;
+    /** Cards already dealt, mirrored so the dealing line can count. */
+    private int dealt;
+    /** Per seat, a bot's pending call: 0 undecided, negative declined, positive ticks left to wait. */
+    private final int[] botCallIn = new int[PLAYERS];
 
     @Nullable
     private Combo tableCombo;
@@ -371,6 +402,9 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         subASeat = -1;
         subARevealed = false;
         revealedMask = 0;
+        calledMask = 0;
+        dealt = 0;
+        Arrays.fill(botCallIn, 0);
         trump = null;
         tableCombo = null;
         tableSeat = -1;
@@ -397,22 +431,37 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         dealPile.addAll(gameDeck);
         dealPile.shuffle();
 
-        // Deal round-robin, one card per scheduled tick, so the table animates. 108 cards is 108 ticks
-        // of dealing, which is the one part of the game worth watching in full.
+        // The trump is drawn *before* the first card rather than after the last, because 叫大A needs
+        // the table to know what it is calling while the cards are still coming: the deal is where the
+        // whole "who is holding it, and who dares own up to it" half of the game lives.
+        trump = drawTrump();
+        table(Component.translatable("message.daa.game_started"));
+        table(Component.translatable("message.daa.trump_announce", suitLine(trump)));
+
+        // Deal round-robin, one card every DEAL_INTERVAL ticks, with the bots given a look at their
+        // hand between cards so they can call -- see botCallScan.
         int start = players.isEmpty() ? 0 : random.nextInt(players.size());
         for (int i = 0; i < gameDeck.size(); i++) {
             CardPlayer receiver = playerAt(start + i);
             scheduledActions.add(() -> {
                 receiver.playSound(ModSounds.CARD_DRAW.get());
                 dealCards(dealPile, receiver, 1);
+                dealt++;
+                botCallScan();
             });
+            for (int k = 1; k < DEAL_INTERVAL; k++) {
+                scheduledActions.add(this::botCallScan);
+            }
+        }
+        // The last card of the deal can be a 大A, so the window stays open a moment after the deck is
+        // out rather than snapping shut on it.
+        for (int k = 0; k < CALL_WINDOW; k++) {
+            scheduledActions.add(this::botCallScan);
         }
 
         isGameReady = false;
         isGameOver = false;
         setCurrentPlayer(start);
-
-        table(Component.translatable("message.daa.game_started"));
     }
 
     @Override
@@ -429,17 +478,136 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Calling the 大A
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * 叫大A: a player owns up to the 大A they are holding, while the cards are still coming.
+     *
+     * <p>This is the real game's claim on the 主A chair. The first to call takes it and is announced on
+     * their plate at once; the second caller is the 次A and, by calling, has outed themselves — a
+     * 明A board with no hidden partner, which is the trade for calling late. Nobody calling leaves the
+     * old behaviour alone: {@link #beginPlay} then picks the holder nearest the dealer and keeps the
+     * other one face down.
+     *
+     * <p>Server owned and validated: only a seat actually holding one of the two aces, only during
+     * {@link Phase#DEALING}, and only twice a board.
+     */
+    public void callBigA(@Nullable CardPlayer player) {
+        if (phase != Phase.DEALING || player == null || trump == null) {
+            return;
+        }
+        int seat = getSeat(player);
+        if (seat < 0 || (calledMask & (1 << seat)) != 0 || !holdsBigA(seat)) {
+            return;
+        }
+        if (mainASeat >= 0 && subASeat >= 0) {
+            return;
+        }
+
+        calledMask |= 1 << seat;
+        // A caller is public by definition: the plate tag is the whole point of calling.
+        reveal(seat);
+        if (mainASeat < 0) {
+            mainASeat = seat;
+            table(Component.translatable("message.daa.called", player.getColoredName()));
+        } else {
+            subASeat = seat;
+            subARevealed = true;
+            table(Component.translatable("message.daa.called_sub", player.getColoredName()));
+        }
+        player.playSound(ModSounds.CARD_PLAY.get());
+    }
+
+    /** Whether {@code seat} is holding one of the two 大A right now. */
+    private boolean holdsBigA(int seat) {
+        if (trump == null || seat < 0 || seat >= players.size()) {
+            return false;
+        }
+        for (Card card : getPlayerHand(players.get(seat)).getCards()) {
+            if (DaaCards.isBigA(card, trump)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * One tick of a bot's look at its own hand.
+     *
+     * <p>A bot decides once — the moment it first holds a 大A — whether it wants the chair at all, and
+     * then waits a beat before saying so. The wait is what gives a human who drew early the chance to
+     * beat it to the 主A, which is the whole contest of the calling phase.
+     */
+    private void botCallScan() {
+        if (phase != Phase.DEALING || trump == null) {
+            return;
+        }
+        if (mainASeat >= 0 && subASeat >= 0) {
+            return;
+        }
+        for (int i = 0; i < players.size(); i++) {
+            CardPlayer player = players.get(i);
+            if (!isBot(player) || (calledMask & (1 << i)) != 0 || !holdsBigA(i)) {
+                continue;
+            }
+            int wait = botCallIn[i];
+            if (wait == 0) {
+                botCallIn[i] = willing(player) ? BOT_CALL_MIN + random.nextInt(BOT_CALL_SPAN) : -1;
+                continue;
+            }
+            if (wait < 0) {
+                continue;
+            }
+            if (--wait <= 0) {
+                botCallIn[i] = -1;
+                callBigA(player);
+            } else {
+                botCallIn[i] = wait;
+            }
+        }
+    }
+
+    /** Whether a bot of this strength wants the 主A chair badly enough to say so out loud. */
+    private boolean willing(CardPlayer player) {
+        DaaAi.Skill skill = player instanceof DaaBot bot ? bot.getSkill() : DaaAi.Skill.NORMAL;
+        int chance = switch (skill) {
+            case RELAXED -> 45;
+            case NORMAL -> 75;
+            case FIERCE -> 95;
+        };
+        return random.nextInt(100) < chance;
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // The 大A draw
     // ---------------------------------------------------------------------------------------------
+
+    /** The suit whose two aces are this board's 大A, or {@code null} on a deck with no standard suit. */
+    @Nullable
+    private Suit drawTrump() {
+        List<Suit> suits = new ArrayList<>(Suits.STANDARD);
+        return suits.isEmpty() ? null : suits.get(random.nextInt(suits.size()));
+    }
+
+    /** A suit as a line of chat, in the deck's own colour for it. */
+    private Component suitLine(@Nullable Suit suit) {
+        if (suit == null) {
+            return Component.translatable("message.daa.trump_unknown");
+        }
+        return Component.translatable(deck.getSuitTranslatableKey(suit)).withColor(deck.getSuitColor(suit));
+    }
 
     private void beginPlay() {
         for (CardPlayer player : players) {
             sortHand(player);
         }
 
-        // The board's trump: a suit is drawn and its two aces are the 大A.
-        List<Suit> suits = new ArrayList<>(Suits.STANDARD);
-        trump = suits.get(random.nextInt(suits.size()));
+        // The board's trump was drawn before the deal so it could be called; only a deck with no
+        // standard suit can have left it unset, and then nobody was able to call either.
+        if (trump == null) {
+            trump = drawTrump();
+        }
 
         List<Integer> holders = new ArrayList<>();
         int bigAsInDeck = 0;
@@ -449,38 +617,50 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
             }
         }
         for (int i = 0; i < players.size(); i++) {
-            CardPlayer player = players.get(i);
-            for (Card card : getPlayerHand(player).getCards()) {
-                if (DaaCards.isBigA(card, trump)) {
-                    holders.add(i);
+            if (holdsBigA(i)) {
+                holders.add(i);
+            }
+        }
+
+        if (mainASeat < 0) {
+            // Nobody called: the holder nearest the dealer takes the chair, as before.
+            if (holders.isEmpty()) {
+                // Only reachable if a custom deck dropped the aces; fall back to the whole table.
+                mainASeat = 0;
+            } else if (holders.size() == 1) {
+                mainASeat = holders.getFirst();
+            } else {
+                // Two holders: the one nearer the dealer is the 主A, the other hides as the 次A.
+                int dealer = seat;
+                holders.sort(Comparator.comparingInt(s -> Math.floorMod(s - dealer, players.size())));
+                mainASeat = holders.get(0);
+                subASeat = holders.get(1);
+            }
+        } else if (subASeat < 0) {
+            // The 主A called during the deal, so the other holder is the hidden 次A.
+            for (int holder : holders) {
+                if (holder != mainASeat) {
+                    subASeat = holder;
                     break;
                 }
             }
         }
 
-        if (holders.isEmpty()) {
-            // Only reachable if a custom deck dropped the aces; fall back to the whole table.
-            mainASeat = 0;
-        } else if (holders.size() == 1) {
-            mainASeat = holders.getFirst();
-        } else {
-            // Two holders: the one nearer the dealer is the 主A, the other hides as the 次A.
-            int dealer = seat;
-            holders.sort(Comparator.comparingInt(s -> Math.floorMod(s - dealer, players.size())));
-            mainASeat = holders.get(0);
-            subASeat = holders.get(1);
-        }
-
+        boolean subCalled = subASeat >= 0 && (calledMask & (1 << subASeat)) != 0;
         reveal(mainASeat);
         phase = Phase.PLAY;
         round = 1;
 
-        table(Component.translatable("message.daa.trump_is", Component.translatable(deck.getSuitTranslatableKey(trump))));
-        table(Component.translatable("message.daa.main_a_is", playerAt(mainASeat).getColoredName()));
+        if ((calledMask & (1 << mainASeat)) == 0) {
+            // A caller was already announced the moment they called; only the fallback needs saying.
+            table(Component.translatable("message.daa.main_a_is", playerAt(mainASeat).getColoredName()));
+        }
         if (subASeat < 0) {
             // Two very different situations look the same from here: a one deck game has no second
             // 大A at all, while a double deck game can simply have dealt both to one player.
             table(Component.translatable(bigAsInDeck <= 1 ? "message.daa.single_a" : "message.daa.double_a"));
+        } else if (subCalled) {
+            table(Component.translatable("message.daa.sub_a_called", playerAt(subASeat).getColoredName()));
         } else if (REVEAL_SUB_A.get()) {
             subARevealed = true;
             reveal(subASeat);
@@ -927,6 +1107,16 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         return round;
     }
 
+    /** Cards already dealt, for the dealing counter. */
+    public int getDealt() {
+        return dealt;
+    }
+
+    /** Size of the deck being dealt, so the counter has a denominator. */
+    public int getDeckSize() {
+        return gameDeck.size();
+    }
+
     public boolean isShowingHints() {
         return SHOW_HINTS.get();
     }
@@ -937,6 +1127,13 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
      * <p>Called on the server for every slot on every tick, so it must stay cheap and side effect free.
      */
     public int syncValue(int index) {
+        // Checked before the selection ranges: both of these indices sit above them.
+        if (index == SYNC_DEALT) {
+            return dealt;
+        }
+        if (index == SYNC_CALLED) {
+            return calledMask;
+        }
         if (index >= SYNC_SELECT_HI) {
             int seat = index - SYNC_SELECT_HI;
             return seat < PLAYERS ? selectionMask(seat, true) : 0;

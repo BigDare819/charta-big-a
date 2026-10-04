@@ -16,19 +16,30 @@ If the game button says a deck cannot play this game, the deck is almost certain
 Charta's UNO-suited "fun" decks are the ones that get rejected. Any ordinary deck will do. The log also
 lists which of your loaded decks are usable, once per world load.
 
-## The board
+## The deal and calling the big ace
 
-A suit is drawn at the deal. Its two aces are the **big aces** (大A) and are the highest cards in the
-game.
+A suit is drawn **before** the first card. Its two aces are the **big aces** (大A) and are the highest
+cards in the game. The suit is announced at once, because the deal *is* the calling phase.
+
+Draw a big ace while the cards are still coming and you may **call it**:
+
+* The **first to call** becomes the **main ace** (主A), is announced on the spot, and leads.
+* The **second to call** is the **second ace** (次A). By calling they have outed themselves, so both
+  aces are face up — an open board with no hidden partner, which is what calling late costs you.
+* **Nobody calling** is fine too: once the deck is out, the system hands the main chair to the holder
+  nearest the dealer and leaves the other one hidden.
+
+Call early and you take the chair; call at all and you give up your cover. The button only exists while
+the cards are still landing and lights up the moment a big ace reaches your fan (key `C`).
 
 The two big aces split the table in two:
 
 * Their holders are the **big ace side** (主方).
 * Everybody else is a **catcher** (抓方).
 
-**One holder leads and is announced.** The other — the *second big ace* — stays hidden until their big
-ace actually hits the table, which is the whole tension of the game. If one player happens to hold
-**both** big aces they are announced at once and play alone against the other four.
+**The second holder stays hidden until they call or their big ace hits the table**, which is the whole
+tension of the game. If one player happens to hold **both** big aces one call is enough and they play
+alone against the other four.
 
 ## The ladder
 
@@ -94,9 +105,12 @@ run out, which is what stops a lone main big ace from farming a table by dumping
 ## Controls
 
 * **Click a card** in your own fan to select or deselect it. Selected cards are tinted and outlined.
-* **Play** (`Enter`) throws the selection, **Pass** (`Backspace`), **Clear** (`Delete`).
-* **F9** opens the layout editor: drag to move, scroll to scale, right click an element to reset it,
-  `R` resets the element under the pointer and `S` writes `config/daa-layout.properties`.
+* **Play** (`Enter`) throws the selection, **Pass** (`Backspace`), **Clear** (`Delete`), and **Call big
+  A** (`C`, only while the deal is running).
+* **F9** opens the layout editor: drag to move, scroll to scale, right click an element to reset it and
+  `R` resets the element under the pointer. Dragging, scaling and resetting all **write
+  `config/daa-layout.properties` by themselves** (`S` saves at any time too), so a screen you have
+  arranged stays arranged.
 
 ## Playing alone (bot mode)
 

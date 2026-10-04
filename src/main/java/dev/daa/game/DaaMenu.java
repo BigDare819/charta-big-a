@@ -1,8 +1,11 @@
 package dev.daa.game;
 
 import dev.daa.DaaMod;
+import dev.lucaargolo.charta.common.game.Suits;
 import dev.lucaargolo.charta.common.game.api.CardPlayer;
 import dev.lucaargolo.charta.common.game.api.GameSlot;
+import dev.lucaargolo.charta.common.game.api.card.Card;
+import dev.lucaargolo.charta.common.game.api.card.Suit;
 import dev.lucaargolo.charta.common.menu.AbstractCardMenu;
 import dev.lucaargolo.charta.common.menu.CardSlot;
 import dev.lucaargolo.charta.common.menu.HandSlot;
@@ -222,6 +225,49 @@ public class DaaMenu extends AbstractCardMenu<DaaGame, DaaMenu> {
 
     public int getRound() {
         return daaData.get(DaaGame.SYNC_ROUND);
+    }
+
+    /** Cards already dealt, for the dealing counter. */
+    public int getDealt() {
+        return daaData.get(DaaGame.SYNC_DEALT);
+    }
+
+    /** Whether the local player has already called their 大A this deal. */
+    public boolean hasCalled() {
+        return (daaData.get(DaaGame.SYNC_CALLED) & (1 << getLocalSeat())) != 0;
+    }
+
+    /**
+     * Whether the 叫大A button should be live for the local player.
+     *
+     * <p>The local player's own fan is the one hand the client actually holds, so the eligibility is
+     * decided here rather than mirrored: are we still dealing, is there a chair left to claim, and is
+     * one of the two aces sitting in this fan.
+     */
+    public boolean canCallBigA() {
+        if (getPhase() != DaaGame.Phase.DEALING || hasCalled()) {
+            return false;
+        }
+        if (getMainASeat() >= 0 && getSubASeat() >= 0) {
+            return false;
+        }
+        Suit trump = trumpSuit();
+        if (trump == null || cardSlots.size() <= handSlot(0)) {
+            return false;
+        }
+        for (Card card : cardSlots.get(handSlot(0)).getSlot().getCards()) {
+            if (DaaCards.isBigA(card, trump)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** The drawn 大A suit, or {@code null} before the deal has picked one. */
+    @Nullable
+    public Suit trumpSuit() {
+        int index = getTrumpIndex();
+        return index < 0 || index >= Suits.STANDARD.size() ? null : Suits.STANDARD.get(index);
     }
 
     public int handCount(int seat) {

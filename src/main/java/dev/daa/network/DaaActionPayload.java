@@ -36,6 +36,8 @@ public record DaaActionPayload(int containerId, int action, int index) implement
     public static final int PASS = 2;
     /** Drop the whole selection. */
     public static final int CLEAR = 3;
+    /** 叫大A: claim the 主A chair while the deal is still running. */
+    public static final int CALL = 4;
 
     public static final CustomPacketPayload.Type<DaaActionPayload> TYPE =
             new CustomPacketPayload.Type<>(DaaMod.id("action"));
@@ -61,6 +63,7 @@ public record DaaActionPayload(int containerId, int action, int index) implement
                 case PLAY -> menu.getGame().submitPlay(cardPlayer, menu.getGame().selectedCards(cardPlayer));
                 case PASS -> menu.getGame().submitPass(cardPlayer);
                 case CLEAR -> menu.getGame().clearSelection(cardPlayer);
+                case CALL -> menu.getGame().callBigA(cardPlayer);
                 default -> {
                 }
             }

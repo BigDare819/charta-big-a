@@ -73,6 +73,8 @@ public final class DaaLayout {
         BTN_PLAY("btn_play", 68, 18),
         BTN_PASS("btn_pass", 68, 18),
         BTN_CLEAR("btn_clear", 68, 18),
+        /** 叫大A, live only while the deal is running; sits to the left of the play button. */
+        BTN_CALL("btn_call", 68, 18),
         /** The three status lines above the pile: board, turn, and what is on the table. */
         STATUS_BOARD("status_board", 240, 10),
         STATUS_TURN("status_turn", 240, 10),
@@ -109,11 +111,7 @@ public final class DaaLayout {
     public static final float SCALE_STEP = 0.05f;
 
     // Ring anchors. Absolute, measured on the design frame.
-    private static final int MARGIN = 8;
-    private static final int BOTTOM_GAP = 6;
-    private static final int COLUMN_TOP = 40;
-    private static final int TOP_ROW = 8;
-    private static final int PLATE_GAP = 3;
+    private static final int PLATE_H = 13;
 
     /** {@code {dx, dy, scale}} per {@link Element}, indexed by {@link Element#ordinal()}. */
     private final float[][] values = new float[Element.values().length][3];
@@ -183,7 +181,23 @@ public final class DaaLayout {
         };
     }
 
-    /** Where an element sits before the player's offset: the ring, resolved for the local seat. */
+    /**
+     * Where an element sits before the player's offset: the ring, resolved for the local seat.
+     *
+     * <h2>Why the anchors are written down as numbers</h2>
+     *
+     * <p>They used to be derived from a handful of margins and the base sizes, which reads well but
+     * means that nudging a margin, or adding one more element to a row, silently moves everything else
+     * — and a player who has spent a while dragging a screen into shape should not have it reflow under
+     * them on an update. So each anchor is now the literal pixel count of the arrangement, measured on
+     * the 640x360 design frame, and only two things still vary with it:
+     *
+     * <ul>
+     *   <li>the element's own scaled width/height, for anything centred or right aligned;</li>
+     *   <li>the plate rows, which are pinned to the <em>base</em> size of the hand they belong to, so
+     *       scaling a fan does not drag its name off the screen edge.</li>
+     * </ul>
+     */
     private int[] anchor(Element element) {
         int width = Math.round(element.baseWidth * scale(element));
         int height = Math.round(element.baseHeight * scale(element));
@@ -197,9 +211,10 @@ public final class DaaLayout {
         }
         return switch (element) {
             case PILE -> new int[]{(DaaFrame.WIDTH - width) / 2, 156};
-            case BTN_PLAY -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2, 264};
-            case BTN_PASS -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + BTN_W + BTN_SPACING, 264};
-            case BTN_CLEAR -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + 2 * (BTN_W + BTN_SPACING), 264};
+            case BTN_PLAY -> new int[]{212, 264};
+            case BTN_PASS -> new int[]{286, 264};
+            case BTN_CLEAR -> new int[]{360, 264};
+            case BTN_CALL -> new int[]{138, 264};
             // Status lines are centred and stacked; their own anchors are what the stack walks.
             case STATUS_BOARD -> new int[]{(DaaFrame.WIDTH - width) / 2, 116};
             case STATUS_TURN -> new int[]{(DaaFrame.WIDTH - width) / 2, 128};
@@ -218,14 +233,6 @@ public final class DaaLayout {
         }
     }
 
-    private static final int PLATE_H = 13;
-    private static final int BTN_W = 68;
-    private static final int BTN_SPACING = 6;
-    /** Left edge of the upper-left fan; the upper-right one mirrors it. */
-    private static final int TOP_ROW_X = 96;
-    /** Vertical gap between the two upper fans and the middle of the screen. */
-    private static final int TOP_ROW_GAP = 76;
-
     /**
      * Anchor of one ring slot, for the hand or its plate.
      *
@@ -236,23 +243,17 @@ public final class DaaLayout {
     private int[] ringAnchor(int ring, int width, int height, boolean plate) {
         int plateH = Math.round(PLATE_H * (plate ? scale(Element.PLATE_0) : 1f));
         return switch (ring) {
+            // 354 - hand height is the bottom edge; the plate sits above the fan plus its 3 px gap.
             case 0 -> new int[]{
                     (DaaFrame.WIDTH - width) / 2,
-                    plate ? DaaFrame.HEIGHT - BOTTOM_GAP - Element.HAND_0.baseHeight - PLATE_GAP - plateH
-                          : DaaFrame.HEIGHT - BOTTOM_GAP - height};
-            case 1 -> new int[]{
-                    plate ? MARGIN + Element.HAND_1.baseWidth + PLATE_GAP : MARGIN,
-                    COLUMN_TOP};
-            case 2 -> new int[]{
-                    plate ? TOP_ROW_X + Element.HAND_2.baseWidth - width : TOP_ROW_X,
-                    plate ? TOP_ROW + Element.HAND_2.baseHeight + PLATE_GAP : TOP_ROW};
-            case 3 -> new int[]{
-                    plate ? DaaFrame.WIDTH - TOP_ROW_X - Element.HAND_3.baseWidth : DaaFrame.WIDTH - TOP_ROW_X - width,
-                    plate ? TOP_ROW + Element.HAND_3.baseHeight + PLATE_GAP : TOP_ROW};
-            default -> new int[]{
-                    plate ? DaaFrame.WIDTH - MARGIN - Element.HAND_4.baseWidth - PLATE_GAP - width
-                          : DaaFrame.WIDTH - MARGIN - width,
-                    COLUMN_TOP};
+                    plate ? 298 - plateH : 354 - height};
+            // The left and right columns, and the two plates beside them.
+            case 1 -> new int[]{plate ? 49 : 8, 40};
+            // The upper fans own 96..282 and 358..544; the plates take their inner end and their
+            // bottom edge, so a plate always reads as a caption of the fan next to it.
+            case 2 -> new int[]{plate ? 282 - width : 96, plate ? 64 : 8};
+            case 3 -> new int[]{plate ? 358 : 544 - width, plate ? 64 : 8};
+            default -> new int[]{plate ? 591 - width : 632 - width, 40};
         };
     }
 
