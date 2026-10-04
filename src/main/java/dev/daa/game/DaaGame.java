@@ -460,6 +460,7 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         if (subASeat < 0) {
             table(Component.translatable("message.daa.double_a"));
         } else if (REVEAL_SUB_A.get()) {
+            subARevealed = true;
             reveal(subASeat);
             table(Component.translatable("message.daa.sub_a_is", playerAt(subASeat).getColoredName()));
         } else {

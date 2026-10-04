@@ -66,8 +66,6 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
     private static final int CELL_HOVER = 0x99FFE97F;
     private static final int OUTLINE = 0x60FFFFFF;
     private static final int SCRIM = 0x59000000;
-    /** A selected card's lift, in pixels, mirroring the way a held card sits proud of the fan. */
-    private static final int SELECT_LIFT = 7;
 
     private static final DaaLayout LAYOUT = new DaaLayout();
 
@@ -210,12 +208,6 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
             int column = i % columns;
             int row = i / columns;
             drawCard(guiGraphics, cards.get(i), deck, originX + column * cardW, originY + row * cardH, cardW, cardH);
-        }
-
-        Component kind = menu.getTableKind() == null ? Component.empty()
-                : Component.translatable("pattern.daa." + menu.getTableKind().name().toLowerCase(java.util.Locale.ROOT));
-        if (!kind.getString().isEmpty()) {
-            guiGraphics.drawString(font, kind, box[0] + (box[2] - font.width(kind)) / 2, box[1] - 11, ACTIVE, true);
         }
     }
 

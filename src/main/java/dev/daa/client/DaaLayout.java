@@ -68,8 +68,8 @@ public final class DaaLayout {
         PLATE_2("plate_2", 118, 13),
         PLATE_3("plate_3", 118, 13),
         PLATE_4("plate_4", 118, 13),
-        /** The middle block: the current pile, and the drop target that used to register a play. */
-        PILE("pile", 300, 104),
+        /** The middle block: the current pile. */
+        PILE("pile", 300, 96),
         BTN_PLAY("btn_play", 68, 18),
         BTN_PASS("btn_pass", 68, 18),
         BTN_CLEAR("btn_clear", 68, 18),
@@ -130,11 +130,6 @@ public final class DaaLayout {
 
     private static float[] defaults(Element element) {
         return switch (element) {
-            // The pile is pushed down under the status stack, which is lifted clear of it.
-            case PILE -> new float[]{0f, 34f, 0f};
-            case STATUS_BOARD -> new float[]{0f, -54f, 0f};
-            case STATUS_TURN -> new float[]{0f, -42f, 0f};
-            case STATUS_TABLE -> new float[]{0f, -30f, 0f};
             default -> new float[]{0f, 0f, 0f};
         };
     }
@@ -201,10 +196,10 @@ public final class DaaLayout {
             return ringAnchor(ring(key), width, height, true);
         }
         return switch (element) {
-            case PILE -> new int[]{(DaaFrame.WIDTH - width) / 2, 150};
-            case BTN_PLAY -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2, 262};
-            case BTN_PASS -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + BTN_W + BTN_SPACING, 262};
-            case BTN_CLEAR -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + 2 * (BTN_W + BTN_SPACING), 262};
+            case PILE -> new int[]{(DaaFrame.WIDTH - width) / 2, 156};
+            case BTN_PLAY -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2, 264};
+            case BTN_PASS -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + BTN_W + BTN_SPACING, 264};
+            case BTN_CLEAR -> new int[]{(DaaFrame.WIDTH - 3 * BTN_W - 2 * BTN_SPACING) / 2 + 2 * (BTN_W + BTN_SPACING), 264};
             // Status lines are centred and stacked; their own anchors are what the stack walks.
             case STATUS_BOARD -> new int[]{(DaaFrame.WIDTH - width) / 2, 116};
             case STATUS_TURN -> new int[]{(DaaFrame.WIDTH - width) / 2, 128};
