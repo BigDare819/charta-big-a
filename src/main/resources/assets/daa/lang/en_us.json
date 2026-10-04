@@ -26,8 +26,10 @@
   "pattern.daa.four_joker": "four jokers",
   "pattern.daa.double_big_a": "both big aces",
 
-  "rule.daa.enable_bots": "Fill empty chairs with bots",
-  "rule.daa.enable_bots.description": "Big A is a five hand game. With this off the table will not start until five players are seated.",
+  "rule.daa.bot_mode": "Bot mode",
+  "rule.daa.bot_mode.description": "Bots fill every empty chair, so one player can open a table. Turn it off to require five real players.",
+  "rule.daa.bot_skill": "Bot strength (0 relaxed, 1 normal, 2 fierce)",
+  "rule.daa.bot_skill.description": "Relaxed: beats whatever it can, saves nothing and ignores its partner. Normal: knows its partner and keeps the four special cards for their moment. Fierce: takes every four-recycle and bombs when an opponent is nearly out.",
   "rule.daa.reveal_sub_a": "Reveal the second big ace",
   "rule.daa.reveal_sub_a.description": "Announce both holders of the big aces at the deal. Off, the second holder stays hidden until their big ace is played.",
   "rule.daa.show_hints": "Show pattern names",

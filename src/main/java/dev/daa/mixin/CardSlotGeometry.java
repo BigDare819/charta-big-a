@@ -4,7 +4,6 @@ import dev.daa.client.CardSlotAccess;
 import dev.lucaargolo.charta.common.menu.CardSlot;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
@@ -19,35 +18,42 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  * <p>{@code @Mutable} is required, not decorative: {@code x} and {@code y} are {@code final}, and a
  * plain accessor setter fails at runtime with
  * {@code IllegalAccessError: Update to non-static final field ... attempted from a different method}.
+ *
+ * <h2>Why the fields are called {@code bridge$...} and are not {@code @Unique}</h2>
+ *
+ * <p>Charta addons by the same author overlap, and a second addon declares the same three fields. Mixin
+ * merges any field that is <em>not</em> {@code @Unique} into an identically named field already on the
+ * target, so keeping the exact name and descriptor makes both addons read and write <em>one</em> slot
+ * size. That matters because of how a {@code @Redirect} collision is resolved: the higher priority
+ * config wins and the other is skipped outright, so whichever addon's metric redirect survives must
+ * still see the size the other addon's layout editor wrote.
  */
 @Mixin(CardSlot.class)
 public abstract class CardSlotGeometry implements CardSlotAccess {
 
-    @Unique
-    private float daa$width;
+    /** Shared with the bridge addon; see the class note. Not {@code @Unique}, on purpose. */
+    private float bridge$width;
 
-    @Unique
-    private float daa$height;
+    private float bridge$height;
 
     /** Marks the field as set, so a width of 0 can stay legal. */
-    @Unique
-    private boolean daa$sized;
+    private boolean bridge$sized;
 
     @Override
     public void daa$setSize(float width, float height) {
-        this.daa$width = width;
-        this.daa$height = height;
-        this.daa$sized = true;
+        this.bridge$width = width;
+        this.bridge$height = height;
+        this.bridge$sized = true;
     }
 
     @Override
     public float daa$width() {
-        return this.daa$sized ? this.daa$width : CardSlot.getWidth(daa$type());
+        return this.bridge$sized ? this.bridge$width : CardSlot.getWidth(daa$type());
     }
 
     @Override
     public float daa$height() {
-        return this.daa$sized ? this.daa$height : CardSlot.getHeight(daa$type());
+        return this.bridge$sized ? this.bridge$height : CardSlot.getHeight(daa$type());
     }
 
     @Mutable

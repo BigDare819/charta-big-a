@@ -30,17 +30,28 @@ public class DaaBot extends AutoPlayer {
 
     private final int number;
     private final DyeColor color;
+    private final DaaAi.Skill skill;
 
     public DaaBot(int number) {
+        this(number, DaaAi.Skill.NORMAL);
+    }
+
+    public DaaBot(int number, DaaAi.Skill skill) {
         // 0.4 lands the thinking delay around a second, which is brisk without being instant.
         super(0.4f);
         this.number = number;
+        this.skill = skill;
         this.color = switch (number % 4) {
             case 1 -> DyeColor.ORANGE;
             case 2 -> DyeColor.LIGHT_BLUE;
             case 3 -> DyeColor.PINK;
             default -> DyeColor.LIME;
         };
+    }
+
+    /** How hard this bot plays, from the 人机模式 strength option. */
+    public DaaAi.Skill getSkill() {
+        return skill;
     }
 
     /** 1-based, only used to tell the bots apart in chat and on the table labels. */

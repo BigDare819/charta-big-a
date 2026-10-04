@@ -26,8 +26,10 @@
   "pattern.daa.four_joker": "四王",
   "pattern.daa.double_big_a": "双大A",
 
-  "rule.daa.enable_bots": "空位用机器人补齐",
-  "rule.daa.enable_bots.description": "打大A是五人游戏。关掉后必须凑齐五人才能开局。",
+  "rule.daa.bot_mode": "人机模式",
+  "rule.daa.bot_mode.description": "空位由机器人补齐，一个人也能开桌。关掉后必须凑齐五名真人才会开局。",
+  "rule.daa.bot_skill": "机器人强度 (0轻松 1普通 2凶狠)",
+  "rule.daa.bot_skill.description": "轻松：见牌就压，不留牌也不管队友。普通：认队友，四张特殊牌留到该用的时候。凶狠：有机会就收四、对手快走完时直接炸。",
   "rule.daa.reveal_sub_a": "公开次A",
   "rule.daa.reveal_sub_a.description": "发牌后直接公布两个大A的持有者。关掉则次A在打出大A前一直隐藏。",
   "rule.daa.show_hints": "显示牌型名称",

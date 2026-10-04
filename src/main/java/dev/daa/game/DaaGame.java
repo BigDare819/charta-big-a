@@ -112,10 +112,15 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
 
     // ------------------------------------------------------------------ options ---
 
-    private final GameOption.Bool ENABLE_BOTS = new GameOption.Bool(
+    private final GameOption.Bool BOT_MODE = new GameOption.Bool(
             true,
-            Component.translatable("rule.daa.enable_bots"),
-            Component.translatable("rule.daa.enable_bots.description"));
+            Component.translatable("rule.daa.bot_mode"),
+            Component.translatable("rule.daa.bot_mode.description"));
+
+    private final GameOption.Number BOT_SKILL = new GameOption.Number(
+            1, 0, 2,
+            Component.translatable("rule.daa.bot_skill"),
+            Component.translatable("rule.daa.bot_skill.description"));
 
     private final GameOption.Bool REVEAL_SUB_A = new GameOption.Bool(
             false,
@@ -249,10 +254,11 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         while (!players.isEmpty() && isBot(players.getLast())) {
             players.removeLast();
         }
-        if (ENABLE_BOTS.get()) {
+        if (BOT_MODE.get()) {
+            DaaAi.Skill skill = DaaAi.Skill.of(BOT_SKILL.get());
             int number = 1;
             while (players.size() < PLAYERS) {
-                players.add(new DaaBot(number++));
+                players.add(new DaaBot(number++, skill));
             }
         }
     }
@@ -285,7 +291,7 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
 
     @Override
     public int getMinPlayers() {
-        return ENABLE_BOTS.get() ? 1 : PLAYERS;
+        return BOT_MODE.get() ? 1 : PLAYERS;
     }
 
     @Override
@@ -295,7 +301,7 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
 
     @Override
     public Optional<Component> playerPredicate(List<CardPlayer> players) {
-        if (!ENABLE_BOTS.get() && players.size() != PLAYERS) {
+        if (!BOT_MODE.get() && players.size() != PLAYERS) {
             return Optional.of(Component.translatable("message.daa.needs_five"));
         }
         return Optional.empty();
@@ -308,7 +314,7 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
 
     @Override
     public List<GameOption<?>> getOptions() {
-        return List.of(ENABLE_BOTS, REVEAL_SUB_A, SHOW_HINTS);
+        return List.of(BOT_MODE, BOT_SKILL, REVEAL_SUB_A, SHOW_HINTS);
     }
 
     @Override
@@ -728,7 +734,11 @@ public class DaaGame extends Game<DaaGame, DaaMenu> {
         if (phase != Phase.PLAY || player != currentPlayer) {
             return null;
         }
-        List<Card> chosen = DaaAi.choose(this, player);
+        // A real player driven by Charta's own auto-play falls back to the middle difficulty; a bot
+        // carries the strength it was built with, which is the option as it stood when the roster was
+        // built.
+        DaaAi.Skill skill = player instanceof DaaBot bot ? bot.getSkill() : DaaAi.Skill.NORMAL;
+        List<Card> chosen = DaaAi.choose(this, player, skill);
         if (chosen.isEmpty()) {
             return tableCombo == null ? null : new GamePlay(List.of(), pile.getIndex());
         }

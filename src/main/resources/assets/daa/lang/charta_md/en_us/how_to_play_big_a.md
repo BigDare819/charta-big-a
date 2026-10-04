@@ -86,9 +86,20 @@ run out, which is what stops a lone main big ace from farming a table by dumping
 * **F9** opens the layout editor: drag to move, scroll to scale, right click an element to reset it,
   `R` resets the element under the pointer and `S` writes `config/daa-layout.properties`.
 
-## Playing alone
+## Playing alone (bot mode)
 
-Empty chairs are filled with bots, on by default. Turn the option off to require five real players.
+**Bot mode** is on by default: every empty chair is filled with a bot, so one player can open a table
+immediately. Turn it off and the table waits for five real players.
 
-Two of the three options are worth knowing about before you sit down: *reveal the second big ace* turns
-the hidden partner into an open one, and is the single biggest change to how the game feels.
+Next to it sits **bot strength**, 0/1/2:
+
+* **0 relaxed** — beats whatever it can, saves no big ace and no joker, and does not know its partner.
+  Good for learning what a legal play looks like.
+* **1 normal** — knows its partner, keeps the four special cards (big ace, big joker, small joker and
+  the fours) for their moment, and only reaches for a bomb when an opponent is nearly out.
+* **2 fierce** — takes every four-recycle it is offered, bombs once an opponent is down to four cards,
+  and will overspend to hold the pile.
+
+There are four options in all; *reveal the second big ace* turns the hidden partner into an open one
+and is the single biggest change to how the game feels. Bot strength is read when a bot is seated, so
+changing it mid-game leaves the bots already at the table alone.

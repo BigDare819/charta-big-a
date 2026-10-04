@@ -127,11 +127,17 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
 
         frame.push(guiGraphics);
         renderScrim(guiGraphics);
+        // Cleared first: the mixin sets it while super.render runs, and only if it actually swallowed
+        // the chat. If a third addon outranked this one's mixin the flag stays false and the chat is
+        // already on screen inside the frame -- drawing it again would stack two copies.
+        DaaFrame.chatSuppressed = false;
         super.render(guiGraphics, frameMouseX, frameMouseY, partialTick);
         renderSelection(guiGraphics);
         frame.pop(guiGraphics);
 
-        renderChat(guiGraphics, mouseX, mouseY);
+        if (DaaFrame.chatSuppressed) {
+            renderChat(guiGraphics, mouseX, mouseY);
+        }
     }
 
     /**

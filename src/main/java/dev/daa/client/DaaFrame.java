@@ -1,5 +1,6 @@
 package dev.daa.client;
 
+import dev.daa.game.DaaScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
@@ -74,6 +75,38 @@ public final class DaaFrame {
         float scale = Mth.clamp(Math.min(guiWidth / (float) WIDTH, guiHeight / (float) HEIGHT),
                 MIN_SCALE, MAX_SCALE);
         return new DaaFrame(scale, (guiWidth - WIDTH * scale) / 2f, (guiHeight - HEIGHT * scale) / 2f);
+    }
+
+    // ------------------------------------------------------------------ framed screens ---
+
+    /**
+     * Set by the chat mixin for the duration of one frame when it swallowed the in-frame chat draw, so
+     * the screen knows it still owes the player a chat <em>after</em> the pose is popped.
+     */
+    public static boolean chatSuppressed;
+
+    /**
+     * Whether {@code screen} paints inside a design frame, and so needs the two things a frame cannot
+     * carry: its chat moved outside the pose, and its tick mouse converted.
+     *
+     * <h2>Why a name check for a foreign screen</h2>
+     *
+     * <p>Charta addons that frame their screen all frame it the same way — same 640x360 design, same
+     * uniform scale, same centring — so one addon's conversion is exactly right for another addon's
+     * screen. What is <em>not</em> shared is the Java type, and taking a compile dependency on a
+     * sibling addon would make each of them unbuildable without the other. So the sibling screen is
+     * matched by class name, and the superclass walk covers the day one of them gains a subclass.
+     */
+    public static boolean isFramedScreen(Object screen) {
+        if (screen instanceof DaaScreen) {
+            return true;
+        }
+        for (Class<?> type = screen.getClass(); type != null; type = type.getSuperclass()) {
+            if (type.getName().equals("dev.bridge.game.BridgeScreen")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ------------------------------------------------------------------ frame <-> window ---

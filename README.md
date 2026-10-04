@@ -32,7 +32,10 @@ The full rules, the shape table and the controls are in game, on the **how to pl
 1. Build a card table out of **card table blocks**. Charta accepts a 3×3, 4×3 or 5×3 rectangle, filled
    in and flat; a five hand game wants the 5×3 one, which also seats everybody on a side.
 2. Put the **Double deck** (`daa:double`) on it and select **打大A / Big A**.
-3. Up to five players. Empty chairs are filled with bots.
+3. Up to five players. **Bot mode** is on by default, so every empty chair is filled with a bot and a
+   single player can open a table; turn it off to require five real players. **Bot strength** (0/1/2)
+   picks how hard they play — relaxed and blind, partner-aware, or fierce enough to take every recycle
+   and bomb a player who is nearly out.
 
 ## Controls
 
@@ -65,6 +68,15 @@ The full rules, the shape table and the controls are in game, on the **how to pl
 * `dev.daa.mixin` — nine mixins. The interesting one is `AutoPlayerPace`: Charta's `AutoPlayer` is also
   what a real player's `CardPlayer` is, and its 2–4 second autopilot is far too fast for a 22-card hand,
   so the think time is stretched for humans only.
+
+  The rest exist because a Charta addon cannot ask for a slot box or a chat offset, so they redirect
+  the calls that decide both. Two of them (`GameScreenChatFrame`, `GameScreenFrameTick`) fire for
+  *every* framed addon screen, not just this one: when two addons redirect the same instruction Mixin
+  keeps the higher priority config and skips the other outright, and this config runs at priority 1200
+  so the other addon does not have to defend itself. The mirrored slice of slot state that the metric
+  redirects read is a plain non-`@Unique` field, which Mixin merges into the identically named field a
+  sibling addon declares — so whichever addon's redirect survives still sees the size the other
+  addon's layout editor wrote.
 * The deck is a datapack file, so the mod ships no registrations beyond its game type, menu and payload.
 
 ## Licence

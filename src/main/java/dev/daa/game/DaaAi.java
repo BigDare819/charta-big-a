@@ -30,8 +30,30 @@ import java.util.Random;
  * <p>In a hidden-partner game a bot that beats its own partner is throwing a card away, so a pile held
  * by a known partner is normally left alone. The 主A is always known, and the 次A becomes known the
  * moment their 大A hits the table.
+ *
+ * <h2>Three strengths</h2>
+ *
+ * <p>{@link Skill} is the 人机模式 difficulty. {@code RELAXED} plays greedily with no partner
+ * awareness at all — it beats whatever is in front of it whenever it legally can — {@code NORMAL} is
+ * the partner-aware game described above, and {@code FIERCE} also takes every 4 recycle it is offered
+ * and spends a bomb the moment an opponent is down to their last two cards.
  */
 public final class DaaAi {
+
+    /** How hard a bot plays. Chosen on the table screen; see {@code rule.daa.bot_skill}. */
+    public enum Skill {
+        /** Cheap and blind: always the smallest legal play, never saves anything. */
+        RELAXED,
+        /** Partner aware, holds the four special cards for their moment. */
+        NORMAL,
+        /** Takes every recycle, bombs a player who is about to go out. */
+        FIERCE;
+
+        public static Skill of(int ordinal) {
+            Skill[] values = values();
+            return values[Math.floorMod(ordinal, values.length)];
+        }
+    }
 
     /** Added to a card's key when deciding whether it is cheap enough to spend. */
     private static final int BIG_A_PRICE = 6;
@@ -46,6 +68,11 @@ public final class DaaAi {
 
     /** The cards to play, or an empty list to pass. */
     public static List<Card> choose(DaaGame game, CardPlayer me) {
+        return choose(game, me, Skill.NORMAL);
+    }
+
+    /** The cards to play, or an empty list to pass. */
+    public static List<Card> choose(DaaGame game, CardPlayer me, Skill skill) {
         int seat = game.getSeat(me);
         if (seat < 0) {
             return List.of();
@@ -58,19 +85,33 @@ public final class DaaAi {
         Combo target = game.getTableCombo();
 
         if (target == null) {
-            return lead(game, seat, hand);
+            return lead(game, seat, hand, skill);
         }
-        return follow(game, seat, hand, target);
+        return follow(game, seat, hand, target, skill);
     }
 
     // ---------------------------------------------------------------------------------------------
     // Leading
     // ---------------------------------------------------------------------------------------------
 
-    private static List<Card> lead(DaaGame game, int seat, List<Card> hand) {
+    private static List<Card> lead(DaaGame game, int seat, List<Card> hand, Skill skill) {
         List<List<Card>> options = Combo.candidates(hand, null, game.getTrump());
         if (options.isEmpty()) {
             return List.of(hand.getFirst());
+        }
+        if (skill == Skill.RELAXED) {
+            // No pricing at all: lead the shortest thing that is not a bomb, ties broken at random.
+            List<Card> smallest = null;
+            for (List<Card> option : options) {
+                Combo combo = Combo.of(option, game.getTrump());
+                if (combo == null || Combo.isBomb(combo.kind())) {
+                    continue;
+                }
+                if (smallest == null || option.size() < smallest.size()) {
+                    smallest = option;
+                }
+            }
+            return smallest != null ? smallest : options.getFirst();
         }
 
         // Leading with the whole count of a rank gets it out of the hand in one move, which is what
@@ -106,10 +147,36 @@ public final class DaaAi {
     // Following
     // ---------------------------------------------------------------------------------------------
 
-    private static List<Card> follow(DaaGame game, int seat, List<Card> hand, Combo target) {
+    private static List<Card> follow(DaaGame game, int seat, List<Card> hand, Combo target, Skill skill) {
         List<List<Card>> options = Combo.candidates(hand, target, game.getTrump());
         if (options.isEmpty()) {
             return List.of();
+        }
+
+        if (skill == Skill.RELAXED) {
+            // Beats whatever it legally can, cheapest first, and falls back to the cheapest bomb --
+            // including a 4 recycle, which it cannot tell apart from a bomb.
+            List<Card> plain = cheapest(options, game, target, false);
+            if (plain != null) {
+                return plain;
+            }
+            List<Card> bomb = cheapest(options, game, target, true);
+            return bomb != null ? bomb : List.of();
+        }
+
+        // FIERCE always takes a recycle: it is the only play in the game that leaves the hand bigger
+        // than it found it, so there is no pile worth more than it.
+        if (skill == Skill.FIERCE) {
+            List<Card> recycle = null;
+            for (List<Card> option : options) {
+                if (Combo.isRecycle(option, target)) {
+                    recycle = option;
+                    break;
+                }
+            }
+            if (recycle != null) {
+                return recycle;
+            }
         }
 
         boolean partnerHolds = game.isMainASide(seat) && game.isRevealed(game.getTableSeat())
@@ -126,12 +193,14 @@ public final class DaaAi {
 
         if (partnerHolds && !pileClosing) {
             // A partner's pile is usually worth keeping: only take it over when the pile is junk, or
-            // when taking it is nearly free.
-            if (target.key() > JUNK_KEY && !Combo.isBomb(target.kind())) {
+            // when taking it is nearly free. A fierce bot is more willing to take over.
+            int leash = skill == Skill.FIERCE ? JUNK_KEY + 3 : JUNK_KEY;
+            if (target.key() > leash && !Combo.isBomb(target.kind())) {
                 return List.of();
             }
             List<Card> cheapest = cheapest(options, game, target, false);
-            if (cheapest != null && price(cheapest, game, Combo.of(cheapest, game.getTrump())) <= 2) {
+            if (cheapest != null && price(cheapest, game, Combo.of(cheapest, game.getTrump()))
+                    <= (skill == Skill.FIERCE ? 4 : 2)) {
                 return cheapest;
             }
             return List.of();
@@ -143,7 +212,7 @@ public final class DaaAi {
             if (i == seat || game.isFinished(i) || game.isMainASide(i) == game.isMainASide(seat)) {
                 continue;
             }
-            if (game.getPlayerHand(game.playerAt(i)).size() <= 2) {
+            if (game.getPlayerHand(game.playerAt(i)).size() <= (skill == Skill.FIERCE ? 4 : 2)) {
                 opponentClose = true;
             }
         }
@@ -152,7 +221,7 @@ public final class DaaAi {
         if (plain != null && !opponentClose) {
             return plain;
         }
-        if (plain != null && target.key() < 11) {
+        if (plain != null && target.key() < 11 && skill != Skill.FIERCE) {
             // Nothing dangerous on the pile; saving the bombs is still fine.
             return plain;
         }
