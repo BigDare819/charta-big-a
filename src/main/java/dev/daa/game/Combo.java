@@ -22,7 +22,7 @@ import java.util.TreeSet;
  * anything it outranks.
  *
  * <pre>
- *   双大A &gt; 四王 &gt; 三王 &gt; 真七 &gt; 假八 &gt; 连珠蛋 &gt; 双王 &gt; 大蛋子 &gt; 蛋子 &gt; 双龙 &gt; 单龙 &gt; 对子 &gt; 单牌
+ *   双大A &gt; 四王 &gt; 三王 &gt; 真八 &gt; 真七 &gt; 假八 &gt; 连珠蛋 &gt; 双王 &gt; 大蛋子 &gt; 蛋子 &gt; 双龙 &gt; 单龙 &gt; 对子 &gt; 单牌
  * </pre>
  *
  * <p>Everything from 蛋子 upwards is a <em>bomb</em>: it can be thrown at a completely different shape.
@@ -48,6 +48,7 @@ public record Combo(Kind kind, int size, int key, boolean bigA, boolean joker) {
         DOUBLE_BIG_A,
         FOUR_JOKER,
         TRIPLE_JOKER,
+        TRUE_EIGHT,
         TRUE_SEVEN,
         DOUBLE_QUAD,
         TRIPLE_STRAIGHT,
@@ -124,9 +125,14 @@ public record Combo(Kind kind, int size, int key, boolean bigA, boolean joker) {
                 case 1 -> new Combo(Kind.SINGLE, 1, key, DaaCards.isBigA(cards.getFirst(), trump), false);
                 case 2 -> new Combo(Kind.PAIR, 2, key, false, false);
                 case 3 -> new Combo(Kind.TRIPLE, 3, key, false, false);
-                case 4, 5, 6 -> new Combo(Kind.BIG_BOMB, n, key, false, false);
-                case 7, 8 -> new Combo(Kind.TRUE_SEVEN, n, key, false, false);
-                default -> null;
+                // 真七 and 真八 are exactly seven or eight 4s -- the only hands the two decks make
+                // possible, and the two strongest things on the board that are not made of jokers or
+                // 大A. Seven or eight of anything else is a plain 大蛋子.
+                case 7 -> new Combo(DaaCards.isFour(cards.getFirst()) ? Kind.TRUE_SEVEN : Kind.BIG_BOMB,
+                        7, key, false, false);
+                case 8 -> new Combo(DaaCards.isFour(cards.getFirst()) ? Kind.TRUE_EIGHT : Kind.BIG_BOMB,
+                        8, key, false, false);
+                default -> new Combo(Kind.BIG_BOMB, n, key, false, false);
             };
         }
 
@@ -225,7 +231,8 @@ public record Combo(Kind kind, int size, int key, boolean bigA, boolean joker) {
 
         if (kind == target.kind) {
             return switch (kind) {
-                case TRIPLE, BIG_BOMB, TRUE_SEVEN -> size != target.size ? size > target.size : key > target.key;
+                case TRIPLE, BIG_BOMB, TRUE_SEVEN, TRUE_EIGHT ->
+                        size != target.size ? size > target.size : key > target.key;
                 default -> size == target.size && key > target.key;
             };
         }
@@ -286,9 +293,7 @@ public record Combo(Kind kind, int size, int key, boolean bigA, boolean joker) {
                         break;
                     }
                     pick.addAll(group.subList(0, multiplicity));
-                    if (pick.size() >= 6 * multiplicity || true) {
-                        add(found, new ArrayList<>(pick), target, trump);
-                    }
+                    add(found, new ArrayList<>(pick), target, trump);
                 }
             }
         }

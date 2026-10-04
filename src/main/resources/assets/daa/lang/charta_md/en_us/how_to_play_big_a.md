@@ -35,11 +35,12 @@ big A  >  big joker  >  small joker  >  3  >  2  >  A  >  K  >  Q  >  J  >  10  
 | run | 3+ in a row, one each | a lower run of the same length |
 | paired run | 3+ pairs in a row | a lower paired run of the same length |
 | triple (蛋子) | 3 the same | anything below it, or a bigger triple |
-| bomb (大蛋子) | 4 to 6 the same | anything below it, or a *bigger* bomb |
+| bomb (大蛋子) | 4 or more the same | anything below it, or a *bigger* bomb |
 | two / three / four jokers | 2, 3 or 4 jokers | as a bomb, per the ladder |
 | triple run | 3 triples in a row | as a bomb |
-| false seven | two quads in a row | as a bomb |
-| true seven | 7 or 8 the same | as a bomb |
+| false eight | two quads in a row | as a bomb |
+| true seven | seven 4s | as a bomb |
+| true eight | all eight 4s | as a bomb |
 | both big aces | the two big aces | everything |
 
 Runs read off the chain `4 5 6 7 8 9 10 J Q K A 2 3` and are compared by their **lowest** card, so
@@ -80,7 +81,7 @@ run out, which is what stops a lone main big ace from farming a table by dumping
 
 ## Controls
 
-* **Click a card** in your own fan to select or deselect it. Selected cards lift out of the fan.
+* **Click a card** in your own fan to select or deselect it. Selected cards are tinted and outlined.
 * **Play** (`Enter`) throws the selection, **Pass** (`Backspace`), **Clear** (`Delete`).
 * **F9** opens the layout editor: drag to move, scroll to scale, right click an element to reset it,
   `R` resets the element under the pointer and `S` writes `config/daa-layout.properties`.
