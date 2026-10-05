@@ -278,13 +278,12 @@ public class DaaScreen extends GameScreen<DaaGame, DaaMenu> {
         int left = Mth.clamp(centreX - plateWidth / 2, 2, DaaFrame.WIDTH - plateWidth - 2);
         int top = box[1];
 
-        // The plate body never changes: it carries only the owner's colour chip down its left edge.
-        // Whose turn it is is said by a single stroke along the top in that same colour, so five plates
-        // read as five names with one of them underlined rather than five boxes with one inverted.
+        // Whose turn it is is said by a hairline along the top in that same colour, so five plates read
+        // as five names with one of them underlined rather than five boxes with one inverted.
         guiGraphics.fill(left, top, left + plateWidth, top + box[3], PLATE_BG);
         guiGraphics.fill(left, top, left + 2, top + box[3], 0xFF000000 | color);
         if (active) {
-            guiGraphics.fill(left + 2, top, left + plateWidth, top + 2, 0xFF000000 | color);
+            guiGraphics.fill(left + 2, top, left + plateWidth, top + 1, 0xFF000000 | color);
         }
 
         Component count = Component.literal(" " + menu.handCount(seat));

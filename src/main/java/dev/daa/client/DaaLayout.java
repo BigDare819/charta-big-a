@@ -102,8 +102,12 @@ public final class DaaLayout {
     /**
      * Layout schema. Bumping it discards a saved file, which matters when an element's default box moves
      * far enough that an offset dragged against the old default lands somewhere meaningless.
+     *
+     * <p>Version 2 folded an arrangement that had been dragged in game — the two side columns pulled
+     * inward and dropped below the top row — into the shipped anchors, so the offsets that produced it
+     * would otherwise be applied a second time on top of themselves.
      */
-    private static final String VERSION = "1";
+    private static final String VERSION = "2";
 
     private static final float MIN_SCALE = 0.5f;
     private static final float MAX_SCALE = 2.5f;
@@ -247,13 +251,14 @@ public final class DaaLayout {
             case 0 -> new int[]{
                     (DaaFrame.WIDTH - width) / 2,
                     plate ? 298 - plateH : 354 - height};
-            // The left and right columns, and the two plates beside them.
-            case 1 -> new int[]{plate ? 49 : 8, 40};
+            // The side columns, pulled in and dropped clear of the top row: left to 51, right to 544,
+            // each with its plate tucked in beside it at y 96.
+            case 1 -> new int[]{plate ? 90 : 51, plate ? 96 : 80};
             // The upper fans own 96..282 and 358..544; the plates take their inner end and their
             // bottom edge, so a plate always reads as a caption of the fan next to it.
             case 2 -> new int[]{plate ? 282 - width : 96, plate ? 64 : 8};
             case 3 -> new int[]{plate ? 358 : 544 - width, plate ? 64 : 8};
-            default -> new int[]{plate ? 591 - width : 632 - width, 40};
+            default -> new int[]{plate ? 545 - width : 582 - width, plate ? 96 : 83};
         };
     }
 
